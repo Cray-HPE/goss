@@ -7,9 +7,9 @@ GIT_DESCRIBE ?= $(shell git describe --tags)
 GIT_LAST_TAG ?= $(shell git describe --tags --abbrev=0)
 
 # RPM spec always wants non emtpy {VERSION}-{RELEASE} - split last tag into version and release.
-SPEC_VERSION = $(GIT_LAST_TAG:v%=%)
+SPEC_VERSION := $(GIT_LAST_TAG:v%=%)
 SPEC_VERSION := $(subst -, ,$(SPEC_VERSION))
-SPEC_RELEASE = $(word 2,$(SPEC_VERSION))
+SPEC_RELEASE := $(word 2,$(SPEC_VERSION))
 SPEC_VERSION := $(word 1,$(SPEC_VERSION))
 # If last tag does not have -* suffix, start from hpe1
 ifeq ($(SPEC_RELEASE),)
