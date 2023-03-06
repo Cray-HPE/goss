@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -35,29 +36,29 @@ func (r JUnit) Output(w io.Writer, results <-chan []resource.TestResult,
 		for _, testResult := range resultGroup {
 			m := struct2map(testResult)
 			duration := strconv.FormatFloat(m["duration"].(float64)/1000/1000/1000, 'f', 3, 64)
-			summary[testCount] = "<testcase name=\"" +
+			summary[testCount] = "  <testcase name=\"" +
 				testResult.ResourceType + " " +
 				escapeString(testResult.ResourceId) + " " +
 				testResult.Property + "\" " +
 				"time=\"" + duration + "\">\n"
-			if testResult.Result == resource.FAIL {
-				summary[testCount] += "<system-err>" +
-					escapeString(humanizeResult2(testResult)) +
-					"</system-err>\n"
-				summary[testCount] += "<failure>" +
-					escapeString(humanizeResult2(testResult)) +
-					"</failure>\n</testcase>\n"
-
-				failed++
+			if testResult.Result == resource.SKIP {
+				summary[testCount] += "    <skipped/>\n"
+				skipped++
 			} else {
-				if testResult.Result == resource.SKIP {
-					summary[testCount] += "<skipped/>"
-					skipped++
+				summary[testCount] += "    <system-out>" +
+					escapeString(strings.TrimSpace(testResult.Stdout)) +
+					"</system-out>\n"
+				summary[testCount] += "    <system-err>" +
+					escapeString(strings.TrimSpace(testResult.Stderr)) +
+					"</system-err>\n"
+				if testResult.Result == resource.FAIL {
+					summary[testCount] += "    <failure>" +
+						escapeString(humanizeResult2(testResult)) +
+						"</failure>\n"
+					failed++
 				}
-				summary[testCount] += "<system-out>" +
-					escapeString(humanizeResult2(testResult)) +
-					"</system-out>\n</testcase>\n"
 			}
+			summary[testCount] += "  </testcase>\n"
 			testCount++
 		}
 	}
