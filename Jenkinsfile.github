@@ -40,7 +40,10 @@ pipeline {
     stages {
         stage('Build: RPM') {
             steps {
-                sh 'make -f Makefile.HPE clean all'
+                script {
+                    currentBuild.description = sh(returnStdout: true, script: 'make -f Makefile.HPE version')
+                    sh 'make -f Makefile.HPE clean all'
+                }
             }
         }
 

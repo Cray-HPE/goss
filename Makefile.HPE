@@ -22,6 +22,9 @@ endif
 
 all: test release_alpha_darwin_amd64 release_linux_amd64 rpm_build
 
+version:
+	@echo $(SPEC_VERSION)-$(SPEC_RELEASE)
+
 clean:
 	make -f Makefile clean
 
