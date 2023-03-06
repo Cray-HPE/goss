@@ -1,0 +1,38 @@
+BUILD_DIR ?= $(PWD)/release
+# bf971d4
+GIT_SHA ?= $(shell git rev-parse --short HEAD)
+# v0.3.21-5-gbf971d4
+GIT_DESCRIBE ?= $(shell git describe --tags)
+# v0.3.21 - may need to override that, for example, if random recent tag chimes in
+GIT_LAST_TAG ?= $(shell git describe --tags --abbrev=0)
+
+# RPM spec always wants non emtpy {VERSION}-{RELEASE} - split last tag into version and release.
+SPEC_VERSION = $(GIT_LAST_TAG:v%=%)
+SPEC_VERSION := $(subst -, ,$(SPEC_VERSION))
+SPEC_RELEASE = $(word 2,$(SPEC_VERSION))
+SPEC_VERSION := $(word 1,$(SPEC_VERSION))
+# If last tag does not have -* suffix, start from hpe1
+ifeq ($(SPEC_RELEASE),)
+	SPEC_RELEASE = hpe1
+endif
+# If not on tag currently, add git SHA to mark unstable build
+ifneq ($(GIT_DESCRIBE),$(GIT_LAST_TAG))
+	SPEC_RELEASE := $(SPEC_RELEASE).g$(GIT_SHA)
+endif
+
+all: test release_alpha_darwin_amd64 release_linux_amd64 rpm_build
+
+clean:
+	make -f Makefile clean
+
+test:
+	make -f Makefile test
+
+release_linux_amd64:
+	TRAVIS_TAG=$(SPEC_VERSION)-$(SPEC_RELEASE) make -f Makefile release/goss-linux-amd64
+
+release_alpha_darwin_amd64:
+	TRAVIS_TAG=$(SPEC_VERSION)-$(SPEC_RELEASE) make -f Makefile release/goss-alpha-darwin-amd64
+
+rpm_build: release_linux_amd64
+	SPEC_VERSION=$(SPEC_VERSION) SPEC_RELEASE=$(SPEC_RELEASE) rpmbuild --nodeps -bb goss.spec --define "_topdir $(BUILD_DIR)"
