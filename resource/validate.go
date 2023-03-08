@@ -74,6 +74,8 @@ type TestResult struct {
 	Found        []string       `json:"found" yaml:"found"`
 	Human        string         `json:"human" yaml:"human"`
 	Duration     time.Duration  `json:"duration" yaml:"duration"`
+	Stdout       string         `json:"stdout" yaml:"stdout"`
+	Stderr       string         `json:"stderr" yaml:"stderr"`
 }
 
 // ToOutcome converts the enum to a human-friendly string.

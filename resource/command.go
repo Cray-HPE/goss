@@ -2,6 +2,7 @@ package resource
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -56,16 +57,51 @@ func (c *Command) Validate(sys *system.System) []TestResult {
 
 	var results []TestResult
 	sysCommand := sys.NewCommand(c.GetExec(), sys, util.Config{Timeout: time.Duration(c.Timeout) * time.Millisecond})
+	newSysCommand := &NewSysCommand{sysCommand, []byte{}, []byte{}}
+	newSysCommand.ReadStreams()
 
 	cExitStatus := deprecateAtoI(c.ExitStatus, fmt.Sprintf("%s: command.exit-status", c.Command))
-	results = append(results, ValidateValue(c, "exit-status", cExitStatus, sysCommand.ExitStatus, skip))
+	results = append(results, AddStdOut(ValidateValue(c, "exit-status", cExitStatus, newSysCommand.ExitStatus, skip), newSysCommand.StdoutBytes, newSysCommand.StderrBytes))
+
 	if len(c.Stdout) > 0 {
-		results = append(results, ValidateContains(c, "stdout", c.Stdout, sysCommand.Stdout, skip))
+		results = append(results, AddStdOut(ValidateContains(c, "stdout", c.Stdout, newSysCommand.GetStdoutBytesReader, skip), newSysCommand.StdoutBytes, newSysCommand.StderrBytes))
 	}
 	if len(c.Stderr) > 0 {
-		results = append(results, ValidateContains(c, "stderr", c.Stderr, sysCommand.Stderr, skip))
+		results = append(results, AddStdOut(ValidateContains(c, "stderr", c.Stderr, newSysCommand.GetStderrBytesReader, skip), newSysCommand.StdoutBytes, newSysCommand.StderrBytes))
 	}
 	return results
+}
+
+type NewSysCommand struct {
+	system.Command
+	StdoutBytes []byte
+	StderrBytes []byte
+}
+
+func (newSysCommand *NewSysCommand) ReadStreams() {
+	newSysCommand.StdoutBytes = readBytes(newSysCommand.Stdout)
+	newSysCommand.StderrBytes = readBytes(newSysCommand.Stderr)
+}
+
+func (newSysCommand *NewSysCommand) GetStdoutBytesReader() (io.Reader, error) {
+	return bytes.NewReader(newSysCommand.StdoutBytes), nil
+}
+
+func (newSysCommand *NewSysCommand) GetStderrBytesReader() (io.Reader, error) {
+	return bytes.NewReader(newSysCommand.StderrBytes), nil
+}
+
+func readBytes(method func() (io.Reader, error)) []byte {
+	reader, _ := method()
+	// Read up to the same amount of bytes, as supported by scanner in func ValidateContains
+	contents, _ := io.ReadAll(io.LimitReader(reader, maxScanTokenSize))
+	return contents
+}
+
+func AddStdOut(testResult TestResult, stdout []byte, stderr []byte) TestResult {
+	testResult.Stdout = string(stdout)
+	testResult.Stderr = string(stderr)
+	return testResult
 }
 
 func NewCommand(sysCommand system.Command, config util.Config) (*Command, error) {
