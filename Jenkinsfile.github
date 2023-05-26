@@ -37,6 +37,10 @@ pipeline {
         timestamps()
     }
 
+    environment {
+        NAME = 'hpe-csm-goss-package'
+    }
+
     stages {
         stage('Build: RPM') {
             steps {
@@ -50,7 +54,27 @@ pipeline {
         stage('Publish') {
             steps {
                 archiveArtifacts(artifacts: 'release/goss-*', allowEmptyArchive: true)
-                publishCsmRpms(component: "hpe-csm-goss-package", pattern: "release/RPMS/x86_64/*.rpm", arch: "x86_64", isStable: isStable)
+                publishCsmRpms(
+                        component: "${env.NAME}",
+                        os: 'sle-15sp2',
+                        pattern: "release/RPMS/x86_64/*.rpm",
+                        arch: "x86_64",
+                        isStable: isStable
+                )
+                publishCsmRpms(
+                        component: "${env.NAME}",
+                        os: 'sle-15sp4',
+                        pattern: "release/RPMS/x86_64/*.rpm",
+                        arch: "x86_64",
+                        isStable: isStable
+                )
+                publishCsmRpms(
+                        component: "${env.NAME}",
+                        os: 'noos',
+                        pattern: "release/RPMS/x86_64/*.rpm",
+                        arch: "x86_64",
+                        isStable: isStable
+                )
             }
         }
     }
