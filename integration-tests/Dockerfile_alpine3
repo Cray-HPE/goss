@@ -1,4 +1,4 @@
-FROM alpine:3.12
+FROM alpine:3.22.2
 MAINTAINER Ahmed
 
 # install apache2 and remove un-needed services
